@@ -40,4 +40,13 @@ command 'REVIEW+HABROK+MSG+NOH+SH'
 
 ## Todo
 - Add commands to hooks + sanitizing data
+- Sync command
+    - Get list of users from hb-user-management
+    - Get list of users from listrsv-api
+    - Diff
+    - Create some users with listsrv-api
+    - Delete some users with listsrv-api
+
 - Add tests (https://fastapi.tiangolo.com/tutorial/testing/)
+
+
