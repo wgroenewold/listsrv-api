@@ -1,21 +1,36 @@
-# from typing import Union
+#! /usr/local/bin/python
 
-# from fastapi import FastAPI
+import requests, re, html
 
-# app = FastAPI()
+username = 'w.groenewold@rug.nl'
+password = 'supersecret'
+mailinglist = 'HABROK' 
+base_url = 'https://list.rug.nl/cgi-bin/wa'
+verify_ssl = False
+email = 'anniko@rtl4.nl'
+firstname = 'Anniko12222'
+lastname = 'van Santen'
+command = 'QUIET+ADD+' + mailinglist + '+' + html.escape(email) + '+' + html.escape(firstname) + '+' + html.escape(lastname)
 
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
+payload = 'LOGIN1=&Y=' + html.escape(username) +'&p=' + html.escape(password) + '&e=Log+In&L=' + html.escape(mailinglist) + '&X='
+headers = {
+  'Content-Type': 'application/x-www-form-urlencoded',
+  'Cookie': 'WALOGIN=RESET'
+}
+r = requests.post(base_url, headers=headers, data=payload, verify=verify_ssl)
 
+login_cookie = r.cookies.get_dict()
+login_cookie = login_cookie['WALOGIN']
 
-# @app.get("/items/{item_id}")
-# def read_item(item_id: int, q: Union[str, None] = None):
-#     return {"item_id": item_id, "q": q}
+headers = {
+  'Cookie': 'WALOGIN=' + login_cookie
+}
+r = requests.get(base_url + '?LCMD=CHARSET+UTF-8+' + command + '&L=' + mailinglist, headers=headers, verify=verify_ssl)
 
-import smtplib
+res = r.text.replace('\n','')
+res = res.replace('<br>','')
+match = re.search('<pre>(.*?)</pre>', res)
 
-server = smtplib.SMTP('localhost')
-server.set_debuglevel(1)
-server.sendmail("From: wgroenewold@gmail.com", "To: wgroenewold@gmail.com", "Hoera, dit werkt")
-server.quit();
+if match:
+    substring = match.group(1)
+    print(html.unescape(substring))

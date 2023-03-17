@@ -15,8 +15,29 @@ git clone git@github.com:wgroenewold/listsrv-api.git
 ```
 
 ## Notes
+commands are:
+POST /login data = username / pw
+See PoC in main.py
 
+GET /test
+command = 'thanks'
+result = You're welcome
+
+GET /user data = email
+command 'QUERY+HABROK+FOR+anniko@rtl4.nl'
+
+POST /user data = email, firstname, lastname
+command = 'QUIET+ADD+HABROK+anniko@rtl4.nl+Anniko+Zanten
+
+DELETE /user data = email
+command 'QUIET+DELETE+HABROK+anniko@rtl4.nl'
+
+GET /list
+command 'REVIEW+HABROK+MSG'
+
+GET /stats
+command 'REVIEW+HABROK+MSG+NOH+SH'
 
 ## Todo
-- Find scope of project
+- Add commands to hooks + sanitizing data
 - Add tests (https://fastapi.tiangolo.com/tutorial/testing/)
