@@ -46,7 +46,7 @@ command 'REVIEW+HABROK+MSG+NOH+SH'
     - Diff
     - Create some users with listsrv-api
     - Delete some users with listsrv-api
-
+- Create Docker-compose to make a turnkey-solution, with SSL and everything
 - Add tests (https://fastapi.tiangolo.com/tutorial/testing/)
 
 
