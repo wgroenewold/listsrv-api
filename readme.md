@@ -40,8 +40,8 @@ command 'REVIEW+HABROK+MSG+NOH+SH'
 
 ## Todo
 - ~~Transparent endpoint for /command to mimic lcmdx~~
-- Add commands to hooks
-- Make requests to listsrv
+- ~~Add commands to hooks~~
+- ~~Make requests to listsrv~~
 - Sanitizing data and outputs
 - Sync command
     - Get list of users from hb-user-management
