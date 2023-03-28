@@ -39,14 +39,17 @@ GET /stats
 command 'REVIEW+HABROK+MSG+NOH+SH'
 
 ## Todo
-- Add commands to hooks + sanitizing data
+- ~~Transparent endpoint for /command to mimic lcmdx~~
+- Add commands to hooks
+- Make requests to listsrv
+- Sanitizing data and outputs
 - Sync command
     - Get list of users from hb-user-management
     - Get list of users from listrsv-api
     - Diff
     - Create some users with listsrv-api
     - Delete some users with listsrv-api
-- Create Docker-compose to make a turnkey-solution, with SSL and everything
+- Create Docker-compose or Ansible playbook (or both) to make a turnkey-solution, with SSL and everything
 - Add tests (https://fastapi.tiangolo.com/tutorial/testing/)
 
 

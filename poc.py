@@ -4,11 +4,11 @@ import requests, re, html
 
 username = 'w.groenewold@rug.nl'
 password = 'supersecret'
-mailinglist = 'HABROK' 
+mailinglist = 'Paardenmeisjes' 
 base_url = 'https://list.rug.nl/cgi-bin/wa'
 verify_ssl = False
 email = 'anniko@rtl4.nl'
-firstname = 'Anniko12222'
+firstname = 'Anniko'
 lastname = 'van Santen'
 command = 'QUIET+ADD+' + mailinglist + '+' + html.escape(email) + '+' + html.escape(firstname) + '+' + html.escape(lastname)
 
