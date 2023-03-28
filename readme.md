@@ -14,36 +14,12 @@ To install the scripts, clone the repo:
 git clone git@github.com:wgroenewold/listsrv-api.git
 ```
 
-## Notes
-commands are:
-POST /login data = username / pw
-See PoC in main.py
-
-GET /test
-command = 'thanks'
-result = You're welcome
-
-GET /user data = email
-command 'QUERY+HABROK+FOR+anniko@rtl4.nl'
-
-POST /user data = email, firstname, lastname
-command = 'QUIET+ADD+HABROK+anniko@rtl4.nl+Anniko+Zanten
-
-DELETE /user data = email
-command 'QUIET+DELETE+HABROK+anniko@rtl4.nl'
-
-GET /list
-command 'REVIEW+HABROK+MSG'
-
-GET /stats
-command 'REVIEW+HABROK+MSG+NOH+SH'
-
 ## Todo
 - ~~Transparent endpoint for /command to mimic lcmdx~~
 - ~~Add commands to hooks~~
 - ~~Make requests to listsrv~~
 - Sanitizing data and outputs
-- Sync command
+- Sync command  
     - Get list of users from hb-user-management
     - Get list of users from listrsv-api
     - Diff
