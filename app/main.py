@@ -1,23 +1,13 @@
 from typing import Union, Annotated 
 from fastapi import FastAPI, Path, Query
 from pydantic import BaseModel
+from dotenv import load_dotenv
 import requests, re, html, tempfile
 
 app = FastAPI()
 
-fqdn = 'https://listsrv-api.rug.nl'
-
-username = 'w.groenewold@rug.nl'
-password = 'banaan'
-
-base_url = 'https://list.rug.nl/cgi-bin/wa'
-verify_ssl = False
-mailinglist = 'HABROK'
-
-class Login(BaseModel):
-    username: str
-    password: str    
-
+config = dotenv_values(".env")
+    
 class CreateUser(BaseModel):
     email: str
     firstname: str | None = None
@@ -30,14 +20,14 @@ class SendCommand(BaseModel):
     command: str
 
 @app.post("/login")
-def login(login: Login):
+def login():
     headers = {
      'Content-Type': 'application/x-www-form-urlencoded',
      'Cookie': 'WALOGIN=RESET'
     }
     
-    payload = 'LOGIN1=&Y=' + html.escape(login.username) +'&p=' + html.escape(login.password) + '&e=Log+In&L=' + html.escape(mailinglist) + '&X='
-    r = requests.post(base_url, headers=headers, data=payload, verify=verify_ssl)
+    payload = 'LOGIN1=&Y=' + html.escape(config.USERNAME) +'&p=' + html.escape(config.PASSWORD) + '&e=Log+In&L=' + html.escape(config.MAILINGLIST) + '&X='
+    r = requests.post(config.BASE_URL, headers=headers, data=payload, verify=config.VERIFY_SSL)
 
     login_cookie = r.cookies.get_dict()
     login_cookie = login_cookie['WALOGIN']
@@ -57,7 +47,7 @@ def send_command(command: SendCommand):
         'Cookie': 'WALOGIN=' + login_cookie
     }
 
-    r = requests.get(base_url + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + mailinglist, headers=headers, verify=verify_ssl)     
+    r = requests.get(config.BASE_URL + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + config.MAILINGLIST, headers=headers, verify=config.VERIFY_SSL)     
 
     res = r.text.replace('\n','')
     res = res.replace('<br>','')
@@ -72,41 +62,41 @@ def send_command(command: SendCommand):
 @app.get("/test")
 def test():
     command = 'thanks'
-    r = requests.post(fqdn + '/command', data={'command': command})     
+    r = requests.post(config.FQDN + '/command', data={'command': command})     
 
     return r.content
 
 @app.get("/user/{email}")
 def get_user(email: str):
-    command = 'QUERY+'+mailinglist+'+FOR+'+email
-    r = requests.post(fqdn + '/command', data={'command': command})     
+    command = 'QUERY+'+config.MAILINGLIST+'+FOR+'+email
+    r = requests.post(config.FQDN + '/command', data={'command': command})     
 
     return r.content
     
 @app.post("/user")
 def create_user(user: CreateUser):    
-    command = 'QUIET+ADD+'+mailinglist+'+'+user.email+'+'+user.firstname+'+'+user.lastname
-    r = requests.post(fqdn + '/command', data={'command': command})     
+    command = 'QUIET+ADD+'+config.MAILINGLIST+'+'+user.email+'+'+user.firstname+'+'+user.lastname
+    r = requests.post(config.FQDN + '/command', data={'command': command})     
 
     return r.content
 
 @app.delete("/user")
 def delete_user(user: DeleteUser):
-    command = 'QUIET+DELETE+'+mailinglist+'+'+user.email
-    r = requests.post(fqdn + '/command', data={'command': command})     
+    command = 'QUIET+DELETE+'+config.MAILINGLIST+'+'+user.email
+    r = requests.post(config.FQDN + '/command', data={'command': command})     
 
     return r.content
 
 @app.get("/list")
 def get_users():
-    command = 'REVIEW+'+mailinglist+'+MSG'
-    r = requests.post(fqdn + '/command', data={'command': command})     
+    command = 'REVIEW+'+config.MAILINGLIST+'+MSG'
+    r = requests.post(config.FQDN + '/command', data={'command': command})     
 
     return r.content
 
 @app.get("/stats")
 def get_stats():
-    command = 'REVIEW+'+mailinglist+'+MSG+NOH+SH'
-    r = requests.post(fqdn + '/command', data={'command': command})     
+    command = 'REVIEW+'+config.MAILINGLIST+'+MSG+NOH+SH'
+    r = requests.post(config.FQDN + '/command', data={'command': command})     
 
     return r.content
