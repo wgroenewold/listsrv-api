@@ -1,5 +1,6 @@
 from typing import Union, Annotated 
 from fastapi import FastAPI, Path, Query
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from dotenv import dotenv_values
 import requests, re, html
@@ -38,7 +39,7 @@ def login():
     f = open("cookie.txt", "w")
     f.write(login_cookie)
     f.close()
-
+ 
     return True
     
 @app.post("/command")
@@ -54,6 +55,7 @@ def send_command(command: SendCommand):
 
     res = r.text.replace('\n','')
     res = res.replace('<br>','')
+    
     match = re.search('<pre>(.*?)</pre>', res)
 
     if match:
@@ -62,44 +64,70 @@ def send_command(command: SendCommand):
     else:
         return False
     
-@app.get("/test")
+@app.get("/test", response_class=PlainTextResponse)
 def test():
     command = 'thanks'
-    r = requests.post(config['FQDN'] + '/command', data={'command': command})     
+    r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.content
+    return r.text
 
 @app.get("/user/{email}")
 def get_user(email: str):
     command = 'QUERY+'+config['MAILINGLIST']+'+FOR+'+email
-    r = requests.post(config['FQDN'] + '/command', data={'command': command})     
+    r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.content
+    email = re.search('&lt;(.*?)&gt;', r.text)
+    name = re.search('(.*?)&lt;', r.text)
+    
+    if email and name:
+        email = email.group(1)
+        name = name.group(1)
+        
+        resp = {
+            "name": name[25:],
+            "email": email.lower()
+        }
+
+        return resp
+    else:
+        return False
     
 @app.post("/user")
 def create_user(user: CreateUser):    
     command = 'QUIET+ADD+'+config['MAILINGLIST']+'+'+user.email+'+'+user.firstname+'+'+user.lastname
-    r = requests.post(config['FQDN'] + '/command', data={'command': command})     
+    r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.content
+    if r.text == False:
+        #error
+        resp =  r.text        
+    elif 'is already subscribed to the' in r.text:
+        #already subscribed
+        resp = True    
+    else: 
+        resp = {
+            "name": user.firstname+' '+user.lastname,
+            "email": user.email.lower()
+        }       
+
+    return resp
 
 @app.delete("/user")
 def delete_user(user: DeleteUser):
     command = 'QUIET+DELETE+'+config['MAILINGLIST']+'+'+user.email
-    r = requests.post(config['FQDN'] + '/command', data={'command': command})     
+    r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.content
+    return r.text
 
 @app.get("/list")
 def get_users():
     command = 'REVIEW+'+config['MAILINGLIST']+'+MSG'
-    r = requests.post(config['FQDN'] + '/command', data={'command': command})     
+    r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.content
+    return r.text
 
 @app.get("/stats")
 def get_stats():
     command = 'REVIEW+'+config['MAILINGLIST']+'+MSG+NOH+SH'
-    r = requests.post(config['FQDN'] + '/command', data={'command': command})     
+    r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.content
+    return r.text
