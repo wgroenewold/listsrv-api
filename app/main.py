@@ -1,11 +1,28 @@
 from typing import Union, Annotated 
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Path, Query, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from dotenv import dotenv_values
 import requests, re, html
 
-app = FastAPI()
+description = """
+Listsrv API contains the scripts necessary to control LISTSRV with a Python-based API
+"""
+
+app = FastAPI(
+    title="Listsrv API",
+    description=description,
+    version="0.0.1",
+    contact={
+        "name": "Listsrv API",
+        "url": "https://github.com/wgroenewold/listsrv-api",
+        "email": "w.groenewold@rug.nl",
+    },
+    license_info={
+        "name": "GNU GPLv3",
+        "url": "https://www.gnu.org/licenses/gpl-3.0.html",
+    },
+)
 
 config = dotenv_values(".env")
 
@@ -23,7 +40,7 @@ class DeleteUser(BaseModel):
 class SendCommand(BaseModel):
     command: str
 
-@app.post("/login")
+@app.post("/login", status_code=200)
 def login():    
     headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -34,15 +51,17 @@ def login():
     r = requests.post(config['BASE_URL'], headers=headers, data=payload, verify=config['VERIFY_SSL'])
 
     login_cookie = r.cookies.get_dict()
-    login_cookie = login_cookie['WALOGIN']
 
-    f = open("cookie.txt", "w")
-    f.write(login_cookie)
-    f.close()
- 
-    return True
+    if len(login_cookie) == 1:
+        login_cookie = login_cookie['WALOGIN']
+        f = open("cookie.txt", "w")
+        f.write(login_cookie)
+        f.close()
+        return 'Login successful'
+    else:
+        raise HTTPException(status_code=401, detail="Login failed")
     
-@app.post("/command")
+@app.post("/command", status_code=200)
 def send_command(command: SendCommand):
     f = open("cookie.txt", "r")
     login_cookie = f.read()
@@ -54,80 +73,109 @@ def send_command(command: SendCommand):
     r = requests.get(config['BASE_URL'] + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + config['MAILINGLIST'], headers=headers, verify=config['VERIFY_SSL'])     
 
     res = r.text.replace('\n','')
-    res = res.replace('<br>','')
-    
     match = re.search('<pre>(.*?)</pre>', res)
 
     if match:
         substring = match.group(1)
         return substring
     else:
-        return False
+        raise HTTPException(status_code=400, detail="Request failed")
     
-@app.get("/test", response_class=PlainTextResponse)
+@app.get("/test", response_class=PlainTextResponse, status_code=200)
 def test():
     command = 'thanks'
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.text
+    if "You're welcome" in r.text:
+        return r.text.replace('<br>', '')
+    else:
+        raise HTTPException(status_code=400, detail="Request failed")
 
-@app.get("/user/{email}")
+#testen
+@app.get("/user/{email}", status_code=200)
 def get_user(email: str):
     command = 'QUERY+'+config['MAILINGLIST']+'+FOR+'+email
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    email = re.search('&lt;(.*?)&gt;', r.text)
-    name = re.search('(.*?)&lt;', r.text)
-    
-    if email and name:
-        email = email.group(1)
-        name = name.group(1)
-        
-        resp = {
-            "name": name[25:],
-            "email": email.lower()
-        }
-
-        return resp
+    if 'Request failed' in r.text:
+        raise HTTPException(status_code=400, detail="Request failed")        
+    elif 'There is no subscription' in r.text:
+        raise HTTPException(status_code=400, detail="User not found")        
     else:
-        return False
+        email = re.search('&lt;(.*?)&gt;', r.text)
+        name = re.search('(.*?)&lt;', r.text)          
+        if email and name:
+            email = email.group(1)
+            name = name.group(1)
     
-@app.post("/user")
+            resp = {
+                "name": name[30:],
+                "email": email.lower()
+            }
+
+            return resp
+
+@app.post("/user", status_code=200)
 def create_user(user: CreateUser):    
     command = 'QUIET+ADD+'+config['MAILINGLIST']+'+'+user.email+'+'+user.firstname+'+'+user.lastname
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    if r.text == False:
-        #error
-        resp =  r.text        
+    if 'Request failed' in r.text:
+         raise HTTPException(status_code=400, detail="Request failed")    
     elif 'is already subscribed to the' in r.text:
-        #already subscribed
-        resp = True    
-    else: 
+         raise HTTPException(status_code=409, detail="User is already subscribed")
+    elif 'has been added' in r.text:
         resp = {
             "name": user.firstname+' '+user.lastname,
             "email": user.email.lower()
-        }       
-
-    return resp
-
-@app.delete("/user")
+        }
+        return resp
+    else: 
+        raise HTTPException(status_code=400, detail="Unknown error")    
+    
+@app.delete("/user", status_code=200)
 def delete_user(user: DeleteUser):
     command = 'QUIET+DELETE+'+config['MAILINGLIST']+'+'+user.email
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.text
+    if 'Request failed' in r.text:
+        raise HTTPException(status_code=400, detail="Request failed")    
+    elif 'is not subscribed' in r.text:
+        raise HTTPException(status_code=400, detail="User not found")    
+    elif 'has been removed' in r.text:
+        return user.email
 
-@app.get("/list")
+@app.get("/list", status_code=200)
 def get_users():
-    command = 'REVIEW+'+config['MAILINGLIST']+'+MSG'
+    command = 'REVIEW+'+config['MAILINGLIST']+'+MSG+NOH'
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.text
+    if 'Request failed' in r.text:
+        raise HTTPException(status_code=400, detail="Request failed")    
+    else:
+        res = r.text[1:].split('<br>')
+        del res[-5:]
 
-@app.get("/stats")
+        data = []
+
+        for val in res:
+            val = val.split(" ", 1)
+
+            data.append({
+                'name': val[1],
+                'email': val[0]
+            })
+
+        return data
+
+@app.get("/stats", status_code=200)
 def get_stats():
     command = 'REVIEW+'+config['MAILINGLIST']+'+MSG+NOH+SH'
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
-    return r.text
+    if 'Request failed' in r.text:
+        raise HTTPException(status_code=400, detail="Request failed")    
+    else:
+        resp = r.text.replace('<br>','').split("* ")[1].split("      ")
+        
+        return int(resp[1])
