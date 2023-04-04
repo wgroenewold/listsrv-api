@@ -179,3 +179,22 @@ def get_stats():
         resp = r.text.replace('<br>','').split("* ")[1].split("      ")
         
         return int(resp[1])
+
+@app.get("/ldap", status_code=200)
+def get_ldap_users():
+    command = html.escape("/Group/"+config['LDAP_GROUP']+"?read-attr='Given Name' and 'surName' and 'Email Address'")
+    r = requests.get(config['LDAP_URL'] + command)
+
+    return r.text
+
+@app.get("/titanic", status_code=200)
+def sync():
+    ldap = requests.get(config['FQDN']+'/ldap')
+    listsrv = requests.get(config['FQDN']+'/list')
+
+    diff = set(ldap) - set(listsrv)
+
+    for val in diff:
+        res = request.post(config['FQDN']+'/user', json=diff)  
+
+    # something something delete    
