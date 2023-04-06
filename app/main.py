@@ -3,7 +3,10 @@ from fastapi import FastAPI, Path, Query, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from dotenv import dotenv_values
-import requests, re, html
+import requests, re, html, pickle
+
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 description = """
 Listsrv API contains the scripts necessary to control LISTSRV with a Python-based API
@@ -46,31 +49,29 @@ def login():
     'Content-Type': 'application/x-www-form-urlencoded',
     'Cookie': 'WALOGIN=RESET'
     }
-    
+
+    s = requests.session()   
     payload = 'LOGIN1=&Y=' + html.escape(config['USERNAME']) +'&p=' + html.escape(config['PASSWORD']) + '&e=Log+In&L=' + html.escape(config['MAILINGLIST']) + '&X='
-    r = requests.post(config['BASE_URL'], headers=headers, data=payload, verify=config['VERIFY_SSL'])
+    r = s.post(config['BASE_URL'], headers=headers, data=payload, verify=config['VERIFY_SSL'])
 
-    login_cookie = r.cookies.get_dict()
+    with open('somefile', 'wb') as f:
+        pickle.dump(s.cookies, f)
 
-    if len(login_cookie) == 1:
-        login_cookie = login_cookie['WALOGIN']
-        f = open("cookie.txt", "w")
-        f.write(login_cookie)
-        f.close()
+    if s.cookies:
         return 'Login successful'
     else:
         raise HTTPException(status_code=401, detail="Login failed")
     
 @app.post("/command", status_code=200)
-def send_command(command: SendCommand):
-    f = open("cookie.txt", "r")
-    login_cookie = f.read()
+def send_command(command: SendCommand):    
+    s = requests.session()
+    
+    with open('somefile', 'rb') as f:
+        s.cookies.update(pickle.load(f))
 
-    headers = {
-        'Cookie': 'WALOGIN=' + login_cookie
-    }
-
-    r = requests.get(config['BASE_URL'] + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + config['MAILINGLIST'], headers=headers, verify=config['VERIFY_SSL'])     
+    r = s.get(config['BASE_URL'] + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + config['MAILINGLIST'], verify=config['VERIFY_SSL'])     
+    with open('somefile', 'wb') as f:
+        pickle.dump(s.cookies, f)
 
     res = r.text.replace('\n','')
     match = re.search('<pre>(.*?)</pre>', res)
@@ -197,4 +198,4 @@ def sync():
     for val in diff:
         res = request.post(config['FQDN']+'/user', json=diff)  
 
-    # something something delete    
+    # something something delete
