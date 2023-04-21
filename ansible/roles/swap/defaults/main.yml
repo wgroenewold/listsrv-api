@@ -1,0 +1,6 @@
+---
+swap_file_path: /swapfile.swap
+swap_file_size: 4  # Size in GiB
+swap_swappiness: 1
+swap_file_state: enabled
+...

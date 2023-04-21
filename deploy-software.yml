@@ -1,0 +1,24 @@
+---
+- name: 'Deploy software on just created VM'
+  hosts:
+    - all
+  become: true  
+  roles:
+    - console_password
+    - remove_releasever
+    - ssh_host_signer
+    - ssh_known_hosts
+    - install_firewalld
+    - {role: geerlingguy.security, become: true}
+    - admin_users
+    - logrotate
+    - swap
+    - sshd
+    - common_tasks
+    - update
+    - resolver
+    - node_exporter
+    - docker
+    - traefik
+    - listsrv
+...

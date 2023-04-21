@@ -1,0 +1,38 @@
+# This role installs firewalld.
+# It sets a simple rule allowing ssh access when firewall_enabled is true.
+# When firewall_enabled is false firewalld will be disabled.
+# further roles can be added later, depending on the required functionality
+---
+- name: Install firewalld
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+  become: true
+
+- name: Start and enable firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  become: true
+  when: firewall_enabled
+
+- name: Set firewall rule for ssh
+  ansible.posix.firewalld:
+    service: ssh
+    permanent: true
+    state: enabled
+  notify: reload_firewalld
+  become: true
+  when: firewall_enabled
+
+- name: Disable firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: stopped
+    enabled: false
+  become: true
+  when: not firewall_enabled
+
+- name: Flush handlers to activate firewall rules.
+  ansible.builtin.meta: flush_handlers

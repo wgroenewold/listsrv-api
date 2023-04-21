@@ -1,0 +1,15 @@
+---
+- name: Install docker community edition.
+  ansible.builtin.yum:
+    name:
+      - docker
+      - "{{ python_pip[ansible_facts['os_family'] + ansible_facts['distribution_major_version']] }}"
+    state: latest
+    update_cache: true
+  become: true
+
+- name: Install docker-py.
+  ansible.builtin.pip:
+    name: docker
+  become: true
+...

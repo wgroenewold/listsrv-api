@@ -1,0 +1,8 @@
+---
+- name: Set console password
+  ansible.builtin.user:
+    name: "{{ awx_user }}"
+    password: "{{ cloud_console_pass_hash }}"
+  become: true
+  when: (cloud_console_pass_hash is defined) and (awx_user is defined)
+...

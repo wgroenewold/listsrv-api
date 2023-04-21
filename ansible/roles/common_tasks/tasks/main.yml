@@ -1,0 +1,75 @@
+---
+- name: Set hostname to inventory_hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  become: true
+
+- name: Set selinux in permissive mode
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+  become: true
+
+- name: Set Timezone
+  community.general.timezone:
+    name: "{{ common_tasks_timezone }}"
+  become: true
+  notify: restart_rsyslog
+
+- name: Install some standard software
+  ansible.builtin.yum:
+    state: latest
+    update_cache: true
+    name:
+      - bash-completion
+      - bc
+      - bcc-tools
+      - bind-utils
+      - bzip2
+      - cargo
+      - curl
+      - dos2unix
+      - figlet
+      - glibc-all-langpacks
+      - gnutls
+      - htop
+      - iftop
+      - iperf3
+      - iproute-tc
+      - langpacks-en
+      - langpacks-nl
+      - libsodium
+      - lsof
+      - nano
+      - net-tools
+      - ncdu
+      - nethogs
+      - nmon
+      - openldap-clients
+      - openssl
+      - python3
+      - rsync
+      - screen
+      - strace
+      - telnet
+      - tmux
+      - traceroute
+      - tree
+      - unzip
+      - urw-base35-fonts
+      - vim
+      - wget
+      - whois
+  tags:
+    - software
+  become: true
+
+- name: Remove cockpit software
+  ansible.builtin.yum:
+    state: removed
+    name:
+      - cockpit-system
+      - cockpit-bridge
+      - cockpit-ws
+  become: true
+...

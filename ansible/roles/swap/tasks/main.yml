@@ -1,0 +1,11 @@
+---
+- name: Include enable_swap.yml when enabled
+  ansible.builtin.include_tasks:
+    file: enable_swap.yml
+  when: swap_file_state == 'enabled'
+
+- name: Include disable_swap.yml when not enabled
+  ansible.builtin.include_tasks:
+    file: disable_swap.yml
+  when: swap_file_state != 'enabled'
+...

@@ -1,0 +1,8 @@
+---
+python_pip:
+   RedHat7: 'python2-pip'
+   RedHat8: 'python3-pip'
+docker_service:
+   RedHat7: 'docker'
+   RedHat8: 'podman'
+...

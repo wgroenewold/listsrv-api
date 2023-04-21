@@ -1,0 +1,2 @@
+awx_user: awxuser
+traefik_dir: /var/www/traefik

@@ -1,0 +1,7 @@
+---
+- name: Remove releasever setting to prevent being stuck at a certain OS release
+  ansible.builtin.file:
+    path: /etc/dnf/vars/releasever
+    state: absent
+  become: true
+...

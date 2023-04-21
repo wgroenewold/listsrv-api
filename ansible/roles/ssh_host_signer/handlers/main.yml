@@ -1,0 +1,36 @@
+---
+- name: 'Reload SSH configuration.'
+  ansible.builtin.systemd:
+    name: sshd
+    state: reloaded
+  become: true
+  listen: reload_sshd
+  register: remove_ssh_key
+
+- name: 'Remove hostname from local known_hosts file'
+  vars:
+    ansible_python_interpreter: python
+  connection: local
+  ansible.builtin.command: "ssh-keygen -R {{ ansible_hostname }}"
+  when: remove_ssh_key
+  listen: reload_sshd
+
+- name: 'Remove ai jumphost from local known_hosts file'
+  vars:
+    ansible_python_interpreter: python
+  connection: local
+  ansible.builtin.command: "ssh-keygen -R {{ ansible_proxy_host }}"
+  when: remove_ssh_key and (ansible_proxy_host is defined and ansible_proxy_host != "")
+  listen: reload_sshd
+  register: add_jumphost_key
+  run_once: true
+
+- name: 'Add jumphost ip address to local known hosts file'
+  vars:
+    ansible_python_interpreter: python
+  connection: local
+  ansible.builtin.shell: "ssh-keyscan {{ ansible_proxy_host }} >> $HOME/.ssh/known_hosts"
+  when: add_jumphost_key
+  listen: reload_sshd
+  run_once: true
+...

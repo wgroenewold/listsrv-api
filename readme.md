@@ -26,5 +26,8 @@ git clone git@github.com:wgroenewold/listsrv-api.git
     - Diff
     - Create some users with listsrv-api
     - Delete some users with listsrv-api
-- Create Docker-compose or Ansible playbook (or both) to make a turnkey-solution, with SSL and everything
+- ~~Create Docker-compose or Ansible playbook (or both) to make a turnkey-solution.~~
+- Add manual SSL support
 - Add tests (https://fastapi.tiangolo.com/tutorial/testing/)
+- If you make auth with external instead of env you can expose port 443 for other services. Update install_firewalld role then.
+    - name: 'Configure /etc/dnsmasq.conf to use nameservers as listed in group_vars for this cluster.'
