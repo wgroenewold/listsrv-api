@@ -11,7 +11,7 @@ required_version = ">= 0.14.0"
 provider "openstack" {
   user_name   = "wouter"
   tenant_name = "admin"
-  password    = "supersecret"
+  password    = "supers3cr3t"
   auth_url    = "hb-openstack.hpc.rug.nl:5000/v3"
   region      = "RegionOne"
 }

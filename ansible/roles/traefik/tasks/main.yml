@@ -44,13 +44,4 @@
       traefik.http.routers.traefik.service: "api@internal"
       traefik.http.routers.traefik.middlewares: "auth"
       traefik.http.middlewares.auth.basicauth.users: "{{ traefik_api_user }}:{{ traefik_api_password | password_hash('blowfish','1234567890123456789012') }}"
-    env:
-      GANDIV5_API_KEY: "{{ gandi_api_key }}"
-
-
-
-
-# download traefik
-# create uvicorn container from Dockerfile
-# start both containers
 ...
