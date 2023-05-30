@@ -1,4 +1,4 @@
-from typing import Union, Annotated 
+from typing import Union, Annotated, Optional
 from fastapi import Depends, FastAPI, Path, Query, HTTPException
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -39,8 +39,8 @@ if config['VERIFY_SSL'] == "False":
 
 class CreateUser(BaseModel):
     email: str
-    firstname: str | None = None
-    lastname: str | None = None
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
     
 class DeleteUser(BaseModel):
     email: str    
@@ -210,10 +210,10 @@ def get_ldap_user(ldap_credentials: Annotated[HTTPBasicCredentials, Depends(secu
 
     return r.text
 
-@app.get("/titanic", status_code=200)
-def sync(credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_credentials: Annotated[HTTPBasicCredentials, Depends(security)], mailinglist: str, ldap_group: str):
-    # - dump alle adressen naar var vanaf LDAP    
-	# - delete alle adressen op mailinglijst
-	# - voeg alle adressen toe van variabele
-	# - query habrok-extra via mailinglijst
-	# - voeg die adressen toe aan mailinglijst1
+# @app.get("/titanic", status_code=200)
+# def sync(credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_credentials: Annotated[HTTPBasicCredentials, Depends(security)], mailinglist: str, ldap_group: str):
+#     # - dump alle adressen naar var vanaf LDAP    
+# 	# - delete alle adressen op mailinglijst
+# 	# - voeg alle adressen toe van variabele
+# 	# - query habrok-extra via mailinglijst
+# 	# - voeg die adressen toe aan mailinglijst1
