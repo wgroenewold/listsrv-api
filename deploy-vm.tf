@@ -11,7 +11,7 @@ required_version = ">= 0.14.0"
 provider "openstack" {
   user_name   = "wouter"
   tenant_name = "admin"
-  password    = "supers3cr3t"
+  password    = "RvfoYtgxEFHQC5"
   auth_url    = "hb-openstack.hpc.rug.nl:5000/v3"
   region      = "RegionOne"
 }
@@ -33,7 +33,7 @@ variable private_subnet_name {
 } 
 
 variable "router_name" {
-  defadefault = "listsrv_mgmt_rt"  
+  default = "listsrv_mgmt_rt"  
 }
 
 variable "server_name" {
@@ -82,7 +82,7 @@ resource "openstack_networking_port_v2" "private_port" {
 
 resource "openstack_networking_router_v2" "private_router" {
   name                = var.router_name
-  external_network_id = "${openstack_networking_network_v2.external_network.id}"
+  external_network_id = data.openstack_networking_network_v2.external_network.id
   admin_state_up      = true
 }
 
@@ -98,7 +98,7 @@ resource "openstack_networking_floatingip_v2" "fip_1"{
 
 resource "openstack_compute_secgroup_v2" "secgroup_1" {
   name        = "default"
-
+  description = ""
   rule {
     from_port   = 22
     to_port     = 22
@@ -130,7 +130,7 @@ resource "openstack_compute_instance_v2" "instance_1" {
   security_groups = ["${openstack_compute_secgroup_v2.secgroup_1.name}"]
 
   network {
-    port = "${openstack_networking_port_v2.port_1.id}"
+    port = "${openstack_networking_port_v2.private_port.id}"
   }
 }
 

@@ -1,9 +1,12 @@
 from typing import Union, Annotated 
-from fastapi import FastAPI, Path, Query, HTTPException
+from fastapi import Depends, FastAPI, Path, Query, HTTPException
 from fastapi.responses import PlainTextResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from dotenv import dotenv_values
+from requests.auth import HTTPBasicAuth
 import requests, re, html, pickle
+
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -27,6 +30,8 @@ app = FastAPI(
     },
 )
 
+security = HTTPBasic()
+
 config = dotenv_values(".env")
 
 if config['VERIFY_SSL'] == "False":
@@ -44,14 +49,14 @@ class SendCommand(BaseModel):
     command: str
 
 @app.post("/login", status_code=200)
-def login():    
+def login(credentials: Annotated[HTTPBasicCredentials, Depends(security)], mailinglist: str):
     headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
     'Cookie': 'WALOGIN=RESET'
     }
 
     s = requests.session()   
-    payload = 'LOGIN1=&Y=' + html.escape(config['USERNAME']) +'&p=' + html.escape(config['PASSWORD']) + '&e=Log+In&L=' + html.escape(config['MAILINGLIST']) + '&X='
+    payload = 'LOGIN1=&Y=' + html.escape(credentials.username) +'&p=' + html.escape(credentials.password) + '&e=Log+In&L=' + html.escape(mailinglist) + '&X='
     r = s.post(config['BASE_URL'], headers=headers, data=payload, verify=config['VERIFY_SSL'])
 
     with open('somefile', 'wb') as f:
@@ -63,13 +68,13 @@ def login():
         raise HTTPException(status_code=401, detail="Login failed")
     
 @app.post("/command", status_code=200)
-def send_command(command: SendCommand):    
+def send_command(command: SendCommand, mailinglist: str):    
     s = requests.session()
     
     with open('somefile', 'rb') as f:
         s.cookies.update(pickle.load(f))
 
-    r = s.get(config['BASE_URL'] + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + config['MAILINGLIST'], verify=config['VERIFY_SSL'])     
+    r = s.get(config['BASE_URL'] + '?LCMD=CHARSET+UTF-8+' + command.command + '&L=' + mailinglist, verify=config['VERIFY_SSL'])     
     with open('somefile', 'wb') as f:
         pickle.dump(s.cookies, f)
 
@@ -94,8 +99,8 @@ def test():
 
 #testen
 @app.get("/user/{email}", status_code=200)
-def get_user(email: str):
-    command = 'QUERY+'+config['MAILINGLIST']+'+FOR+'+email
+def get_user(email: str, mailinglist: str):
+    command = 'QUERY+'+mailinglist+'+FOR+'+email
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
     if 'Request failed' in r.text:
@@ -117,8 +122,9 @@ def get_user(email: str):
             return resp
 
 @app.post("/user", status_code=200)
-def create_user(user: CreateUser):    
-    command = 'QUIET+ADD+'+config['MAILINGLIST']+'+'+user.email+'+'+user.firstname+'+'+user.lastname
+def create_user(user: CreateUser, mailinglist: str):
+    # user first and lastname shouldnt be mandatory    
+    command = 'QUIET+ADD+'+mailinglist+'+'+user.email+'+'+user.firstname+'+'+user.lastname
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
     if 'Request failed' in r.text:
@@ -126,6 +132,7 @@ def create_user(user: CreateUser):
     elif 'is already subscribed to the' in r.text:
          raise HTTPException(status_code=409, detail="User is already subscribed")
     elif 'has been added' in r.text:
+        # user first and lastname shouldnt be mandatory
         resp = {
             "name": user.firstname+' '+user.lastname,
             "email": user.email.lower()
@@ -135,8 +142,8 @@ def create_user(user: CreateUser):
         raise HTTPException(status_code=400, detail="Unknown error")    
     
 @app.delete("/user", status_code=200)
-def delete_user(user: DeleteUser):
-    command = 'QUIET+DELETE+'+config['MAILINGLIST']+'+'+user.email
+def delete_user(user: DeleteUser, mailinglist: str):
+    command = 'QUIET+DELETE+'+mailinglist+'+'+user.email
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
     if 'Request failed' in r.text:
@@ -147,8 +154,8 @@ def delete_user(user: DeleteUser):
         return user.email
 
 @app.get("/list", status_code=200)
-def get_users():
-    command = 'REVIEW+'+config['MAILINGLIST']+'+MSG+NOH'
+def get_users(mailinglist: str):
+    command = 'REVIEW+'+mailinglist+'+MSG+NOH'
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
     if 'Request failed' in r.text:
@@ -170,8 +177,8 @@ def get_users():
         return data
 
 @app.get("/stats", status_code=200)
-def get_stats():
-    command = 'REVIEW+'+config['MAILINGLIST']+'+MSG+NOH+SH'
+def get_stats(mailinglist: str):
+    command = 'REVIEW+'+mailinglist+'+MSG+NOH+SH'
     r = requests.post(config['FQDN'] + '/command', json={'command': command})     
 
     if 'Request failed' in r.text:
@@ -181,21 +188,32 @@ def get_stats():
         
         return int(resp[1])
 
-@app.get("/ldap", status_code=200)
-def get_ldap_users():
-    command = html.escape("/Group/"+config['LDAP_GROUP']+"?read-attr='Given Name' and 'surName' and 'Email Address'")
+@app.get("/ldap/group/", status_code=200)
+def get_ldap_group(ldap_credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_group: str):
+    auth = HTTPBasicAuth(credentials.username, credentials.password)
+
+    command = html.escape("/Group/"+group+"?read-attr='member'", auth=auth)
     r = requests.get(config['LDAP_URL'] + command)
+
+    #we need to polish response a bit
+
+    return r.text
+
+@app.get("/ldap/user", status_code=200)
+def get_ldap_user(ldap_credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_group: str):
+    auth = HTTPBasicAuth(credentials.username, credentials.password)
+
+    command = html.escape("/User/"+config['LDAP_GROUP']+"?read-attr=Internet Email Address", auth=auth)
+    r = requests.get(config['LDAP_URL'] + command)
+
+    #we need to polish response a bit
 
     return r.text
 
 @app.get("/titanic", status_code=200)
-def sync():
-    ldap = requests.get(config['FQDN']+'/ldap')
-    listsrv = requests.get(config['FQDN']+'/list')
-
-    diff = set(ldap) - set(listsrv)
-
-    for val in diff:
-        res = request.post(config['FQDN']+'/user', json=diff)  
-
-    # something something delete
+def sync(credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_credentials: Annotated[HTTPBasicCredentials, Depends(security)], mailinglist: str, ldap_group: str):
+    # - dump alle adressen naar var vanaf LDAP    
+	# - delete alle adressen op mailinglijst
+	# - voeg alle adressen toe van variabele
+	# - query habrok-extra via mailinglijst
+	# - voeg die adressen toe aan mailinglijst1
