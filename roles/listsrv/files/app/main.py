@@ -189,7 +189,7 @@ def get_stats(mailinglist: str):
         return int(resp[1])
 
 @app.get("/ldap/group/", status_code=200)
-def get_ldap_group(ldap_group: str):
+def get_ldap_group(credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_group: str):
     
 
     command = html.escape("/Group/"+group+"?read-attr='member'")
@@ -200,9 +200,8 @@ def get_ldap_group(ldap_group: str):
     return r.text
 
 @app.get("/ldap/user", status_code=200)
-def get_ldap_user(ldap_group: str):
+def get_ldap_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)], ldap_group: str):
     
-
     command = html.escape("/User/"+config['LDAP_GROUP']+"?read-attr=Internet Email Address")
     r = requests.get(config['LDAP_URL'] + command, auth=(config['LDAP_USERNAME'], config['LDAP_PASSWORD']))
 
